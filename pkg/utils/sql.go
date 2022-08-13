@@ -2,7 +2,7 @@ package utils
 
 func QueryTables() string {
 	return `
-		SELECT tbl.name AS table_name
+		SELECT tbl.name AS TableName
 		FROM sys.tables tbl
 		WHERE tbl.is_ms_shipped = 0
 		AND tbl.type = 'U'
@@ -12,43 +12,43 @@ func QueryTables() string {
 
 func QueryColums() string {
 	return `
-		SELECT c.name                                                   AS column_name,
+		SELECT c.name                                                   AS ColumnName,
 			CASE typ.is_assembly_type
 				WHEN 1 THEN TYPE_NAME(c.user_type_id)
 				ELSE TYPE_NAME(c.system_type_id)
-			END                                                             AS data_type,
-			ISNULL(COLUMNPROPERTY(c.object_id, c.name, 'charmaxlen'), 0)    AS character_maximum_length,
-			ISNULL(OBJECT_DEFINITION(c.default_object_id), '')              AS column_default,
-			c.is_nullable                                                   AS is_nullable,
-			COLUMNPROPERTY(c.object_id, c.name, 'IsIdentity')               AS is_identity,
-			OBJECT_NAME(c.object_id)                                        AS table_name,
-			ISNULL(OBJECT_NAME(c.default_object_id), '')                    AS constraint_name,
+			END                                                             AS DataType,
+			ISNULL(COLUMNPROPERTY(c.object_id, c.name, 'charmaxlen'), 0)    AS CharacterMaximumLength,
+			ISNULL(OBJECT_DEFINITION(c.default_object_id), '')              AS ColumnDefault,
+			c.is_nullable                                                   AS IsNullable,
+			COLUMNPROPERTY(c.object_id, c.name, 'IsIdentity')               AS IsIdentity,
+			OBJECT_NAME(c.object_id)                                        AS TableName,
+			ISNULL(OBJECT_NAME(c.default_object_id), '')                    AS ConstraintName,
 			ISNULL(convert(tinyint, CASE
 			WHEN c.system_type_id IN (48, 52, 56, 59, 60, 62, 106, 108, 122, 127) THEN c.precision
-			END), 0) AS numeric_precision,
+			END), 0) AS NumericPrecision,
 			ISNULL(convert(int, CASE
 			WHEN c.system_type_id IN (40, 41, 42, 43, 58, 61) THEN NULL
-			ELSE ODBCSCALE(c.system_type_id, c.scale) END), 0) AS numeric_scale
+			ELSE ODBCSCALE(c.system_type_id, c.scale) END), 0) AS NumericScale
 		FROM sys.columns c
 			INNER JOIN sys.tables t ON c.object_id = t.object_id
 			INNER JOIN sys.types typ ON c.user_type_id = typ.user_type_id
 		WHERE OBJECT_NAME(c.object_id) = @P1 
 		AND t.is_ms_shipped = 0
-		ORDER BY table_name, COLUMNPROPERTY(c.object_id, c.name, 'ordinal');  
+		ORDER BY TableName, COLUMNPROPERTY(c.object_id, c.name, 'ordinal');  
 	`
 }
 
 func QueryForeignKey() string {
 	return `
-		SELECT OBJECT_NAME(fkc.constraint_object_id) AS constraint_name,
-			parent_table.name                       AS table_name,
-			referenced_table.name                   AS referenced_table_name,
-			SCHEMA_NAME(referenced_table.schema_id) AS referenced_schema_name,
-			parent_column.name                      AS column_name,
-			referenced_column.name                  AS referenced_column_name,
-			fk.delete_referential_action            AS delete_referential_action,
-			fk.update_referential_action            AS update_referential_action,
-			fkc.constraint_column_id                AS ordinal_position
+		SELECT OBJECT_NAME(fkc.constraint_object_id) AS ConstraintName,
+			parent_table.name                       AS TableName,
+			referenced_table.name                   AS ReferencedTableName,
+			SCHEMA_NAME(referenced_table.schema_id) AS ReferencedSchemaName,
+			parent_column.name                      AS ColumnName,
+			referenced_column.name                  AS ReferencedColumnName,
+			fk.delete_referential_action            AS DeleteReferentialAction,
+			fk.update_referential_action            AS UpdateReferentialAction,
+			fkc.constraint_column_id                AS OrdinalPosition
 		FROM sys.foreign_key_columns AS fkc
 			INNER JOIN sys.tables AS parent_table
 					ON fkc.parent_object_id = parent_table.object_id
@@ -66,22 +66,22 @@ func QueryForeignKey() string {
 		WHERE parent_table.is_ms_shipped = 0
 		AND referenced_table.is_ms_shipped = 0
 		AND OBJECT_SCHEMA_NAME(fkc.parent_object_id) = @P1
-		ORDER BY table_name, constraint_name, ordinal_position
+		ORDER BY TableName, ConstraintName, OrdinalPosition
 	`
 }
 
 func QueryIndexs() string {
 	return `
 		SELECT DISTINCT
-			ind.name AS index_name,
-			ind.is_unique AS is_unique,
-			ind.is_unique_constraint AS is_unique_constraint,
-			ind.is_primary_key AS is_primary_key,
-			ind.type_desc as clustering,
-			col.name AS column_name,
-			ic.key_ordinal AS seq_in_index,
-			ic.is_descending_key AS is_descending,
-			t.name AS table_name
+			ind.name AS IndexName,
+			ind.is_unique AS IsUnique,
+			ind.is_unique_constraint AS IsUniqueConstraint,
+			ind.is_primary_key AS IsPrimaryKey,
+			ind.type_desc as Clustering,
+			col.name AS ColumnName,
+			ic.key_ordinal AS SeqInIndex,
+			ic.is_descending_key AS IsDescending,
+			t.name AS TableName
 		FROM
 			sys.indexes ind
 		INNER JOIN sys.index_columns ic
@@ -101,6 +101,6 @@ func QueryIndexs() string {
 			'CLUSTERED COLUMNSTORE',
 			'NONCLUSTERED COLUMNSTORE'
 			)
-		ORDER BY table_name, index_name, seq_in_index	
+		ORDER BY TableName, IndexName, SeqInIndex	
 	`
 }
