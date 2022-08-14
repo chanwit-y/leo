@@ -16,31 +16,71 @@ func NewFactory(msSql MsSql) Factory {
 	return Factory{msSql, []Schema{}}
 }
 
-func (f Factory) CreateGorm(tableName string) []string {
-	var gormText []string
+func (f Factory) TestToGrom(tabaleName string) {
+	text := f.toGorm(tabaleName)
+	fmt.Println(text)
+}
 
-	gormText = append(gormText, fmt.Sprintf("package %s\n", packageName))
-	gormText = append(gormText, fmt.Sprintf("type %s struct {\n", toCamelCase(tableName)))
+func (f Factory) GenGormFile() {
+	var tables []string
+	f.msSql.Query(QueryTables()).Scan(&tables)
+	lo.ForEach(tables, func(t string, i int) {
+		gormText := f.toGorm(t)
+		createFile(fmt.Sprintf("./schemax/%s.go", strings.ToLower(t)), gormText)
+	})
+}
+
+func (f Factory) toGorm(tableName string) []string {
+	var gormText []string
 
 	f.toSchema(tableName)
 
 	maxLenName := f.maxLenName()
 	maxLenDataType := f.maxLenDataType()
 
-	for _, s := range f.schemas {
+	gormText = append(gormText, fmt.Sprintf("package %s\n", packageName))
+	_, haveTimeType := lo.Find(f.schemas, func(t Schema) bool {
+		return t.DataType == "time.Time"
+	})
+	if haveTimeType {
+		gormText = append(gormText, "import \"time\" \n")
+	}
+
+	gormText = append(gormText, fmt.Sprintf("type %s struct {\n", toCamelCase(tableName)))
+
+	colPk := ""
+	lo.ForEach(f.schemas, func(s Schema, i int) {
 		pk := ternary(s.IsPk, "primaryKey", "")
+		colPk = ternary(s.IsPk, s.ColumnName, colPk)
 		nameSpace := space(maxLenName - s.LenName)
 		typeSpace := space(maxLenDataType - s.LenDataType)
-		gormText = append(gormText, fmt.Sprintf("	%s%s%s%s `gorm:\"column:%s;type:%s;%s\"`\n",
-			s.Name,
-			nameSpace,
-			s.DataType,
-			typeSpace,
-			s.ColumnName,
-			s.SQLDataType,
-			pk))
-	}
-	fmt.Println(gormText)
+		if s.IsRelation {
+			gormText = append(gormText, fmt.Sprintf("	%s%s%s%s `gorm:\"foreignKey:%s;references:%s\"`\n",
+				s.Name,
+				nameSpace,
+				s.DataType,
+				typeSpace,
+				toCamelCase(colPk),
+				toCamelCase(colPk)))
+		} else {
+			gormText = append(gormText, fmt.Sprintf("	%s%s%s%s `gorm:\"column:%s;type:%s;%s\"`\n",
+				s.Name,
+				nameSpace,
+				s.DataType,
+				typeSpace,
+				s.ColumnName,
+				s.SQLDataType,
+				pk))
+		}
+	})
+
+	gormText = append(gormText, "}\n")
+
+	gormText = append(gormText, fmt.Sprintf("func (%s) TableName() string {\n", toCamelCase(tableName)))
+	gormText = append(gormText, fmt.Sprintf("	return \"%s\"\n", tableName))
+	gormText = append(gormText, "}\n")
+
+	// fmt.Println(gormText)
 
 	return gormText
 }
@@ -72,10 +112,28 @@ func (f *Factory) toSchema(tableName string) {
 			DataType:    toGoType(t.DataType),
 			SQLDataType: t.DataType,
 			LenDataType: len(toGoType(t.DataType)),
+			IsRelation:  false,
 		}
 		f.schemas = append(f.schemas, schema)
-		// schemas = append(schemas, fmt.Sprintf("	%s %s `gorm:\"column:%s;type:%s;%s\"`\n", columName, dataType, t.ColumnName, t.DataType, pk))
 	})
+
+	var foreignKeys []ForeignKey
+	f.msSql.Query(QueryForeignKey(tableName)).Scan(&foreignKeys)
+	lo.ForEach(foreignKeys, func(fk ForeignKey, i int) {
+		dataType := fmt.Sprintf("[]%v", toCamelCase(fk.TableName))
+		schema := Schema{
+			Name:        toCamelCase(fk.TableName),
+			LenName:     len(toCamelCase(fk.TableName)),
+			IsPk:        false,
+			ColumnName:  fk.TableName,
+			DataType:    dataType,
+			SQLDataType: fk.TableName,
+			LenDataType: len(dataType),
+			IsRelation:  true,
+		}
+		f.schemas = append(f.schemas, schema)
+	})
+
 }
 
 // func maxlen(perv, next int) int {

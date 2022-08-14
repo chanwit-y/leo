@@ -40,8 +40,8 @@ func QueryColums(tableName string) string {
 	`, tableName)
 }
 
-func QueryForeignKey() string {
-	return `
+func QueryForeignKey(name string) string {
+	return fmt.Sprintf(`
 		SELECT OBJECT_NAME(fkc.constraint_object_id) AS ConstraintName,
 			parent_table.name                       AS TableName,
 			referenced_table.name                   AS ReferencedTableName,
@@ -67,9 +67,10 @@ func QueryForeignKey() string {
 					AND fkc.parent_object_id = fk.parent_object_id
 		WHERE parent_table.is_ms_shipped = 0
 		AND referenced_table.is_ms_shipped = 0
-		AND OBJECT_SCHEMA_NAME(fkc.parent_object_id) = @P1
+		AND referenced_table.name = '%v'
+		--AND OBJECT_SCHEMA_NAME(fkc.parent_object_id) = @P1
 		ORDER BY TableName, ConstraintName, OrdinalPosition
-	`
+	`, name)
 }
 
 func QueryIndexs() string {

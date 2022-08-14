@@ -5,6 +5,7 @@ type Schema struct {
 	LenName     int
 	DataType    string
 	IsPk        bool
+	IsRelation  bool
 	ColumnName  string
 	SQLDataType string
 	LenDataType int
