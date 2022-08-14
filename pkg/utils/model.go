@@ -1,5 +1,15 @@
 package utils
 
+type Schema struct {
+	Name        string
+	LenName     int
+	DataType    string
+	IsPk        bool
+	ColumnName  string
+	SQLDataType string
+	LenDataType int
+}
+
 type Column struct {
 	ColumnName             string
 	DataType               string

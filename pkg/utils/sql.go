@@ -1,5 +1,7 @@
 package utils
 
+import "fmt"
+
 func QueryTables() string {
 	return `
 		SELECT tbl.name AS TableName
@@ -10,8 +12,8 @@ func QueryTables() string {
 	`
 }
 
-func QueryColums() string {
-	return `
+func QueryColums(tableName string) string {
+	return fmt.Sprintf(`
 		SELECT c.name                                                   AS ColumnName,
 			CASE typ.is_assembly_type
 				WHEN 1 THEN TYPE_NAME(c.user_type_id)
@@ -32,10 +34,10 @@ func QueryColums() string {
 		FROM sys.columns c
 			INNER JOIN sys.tables t ON c.object_id = t.object_id
 			INNER JOIN sys.types typ ON c.user_type_id = typ.user_type_id
-		WHERE OBJECT_NAME(c.object_id) = @P1 
+		WHERE OBJECT_NAME(c.object_id) = '%v' 
 		AND t.is_ms_shipped = 0
 		ORDER BY TableName, COLUMNPROPERTY(c.object_id, c.name, 'ordinal');  
-	`
+	`, tableName)
 }
 
 func QueryForeignKey() string {
@@ -103,4 +105,15 @@ func QueryIndexs() string {
 			)
 		ORDER BY TableName, IndexName, SeqInIndex	
 	`
+}
+
+func QueryPrimarykey(name string) string {
+	return fmt.Sprintf(`
+		SELECT column_name as PRIMARYKEYCOLUMN
+		FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC 
+		INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
+		ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' 
+		AND TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME 
+		AND KU.table_name='%s'
+		ORDER BY KU.TABLE_NAME, KU.ORDINAL_POSITION`, name)
 }
