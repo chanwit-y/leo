@@ -77,13 +77,13 @@ func QueryIndexs() string {
 	return `
 		SELECT DISTINCT
 			ind.name AS IndexName,
-			ind.is_unique AS IsUnique,
-			ind.is_unique_constraint AS IsUniqueConstraint,
-			ind.is_primary_key AS IsPrimaryKey,
+			Isnull(ind.is_unique, 0) AS IsUnique,
+			Isnull(ind.is_unique_constraint, 0) AS IsUniqueConstraint,
+			Isnull(ind.is_primary_key, 0) AS IsPrimaryKey,
 			ind.type_desc as Clustering,
 			col.name AS ColumnName,
 			ic.key_ordinal AS SeqInIndex,
-			ic.is_descending_key AS IsDescending,
+			Isnull(ic.is_descending_key, 0) AS IsDescending,
 			t.name AS TableName
 		FROM
 			sys.indexes ind
@@ -94,8 +94,6 @@ func QueryIndexs() string {
 		INNER JOIN
 			sys.tables t ON ind.object_id = t.object_id
 		WHERE t.is_ms_shipped = 0
-			AND t.name = @P1 
-			AND col.name = @P2 
 			AND ind.filter_definition IS NULL
 			AND ind.name IS NOT NULL
 			AND ind.type_desc IN (

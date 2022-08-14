@@ -12,7 +12,8 @@ func main() {
 	dsn := env.Env().CONNECTION_STRING
 	db, _ := gorm.Open(sqlserver.Open(dsn))
 	factory := utils.NewFactory(utils.NewMsSql(db))
-	factory.TestToGrom("TRIP")
+	factory.GenGormFile()
+	// factory.TestToGrom("TRIP")
 
 	// var tripItems schemax.TripItems
 	// db.Debug().Preload("Flight").Find(&tripItems, "TAI_ID = ?", 3874)

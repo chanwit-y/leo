@@ -36,14 +36,14 @@ type ForeignKey struct {
 	OrdinalPosition         int
 }
 
-type Index struct {
+type DbIndex struct {
 	IndexName          string
-	IsUnique           int
-	IsUniqueConstraint int
-	IsPrimaryKey       int
+	IsUnique           bool
+	IsUniqueConstraint bool
+	IsPrimaryKey       bool
 	Clustering         string
 	ColumnName         string
 	SeqInIndex         int
-	IsDescending       int
+	IsDescending       bool
 	TableName          string
 }

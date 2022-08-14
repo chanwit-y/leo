@@ -10,10 +10,14 @@ import (
 type Factory struct {
 	msSql   MsSql
 	schemas []Schema
+	dbIndex []DbIndex
 }
 
 func NewFactory(msSql MsSql) Factory {
-	return Factory{msSql, []Schema{}}
+	var indexs []DbIndex
+	msSql.Query(QueryIndexs()).Scan(&indexs)
+	// fmt.Println(indexs)
+	return Factory{msSql, []Schema{}, indexs}
 }
 
 func (f Factory) TestToGrom(tabaleName string) {
@@ -102,8 +106,10 @@ func (f *Factory) toSchema(tableName string) {
 	f.msSql.Query(QueryPrimarykey(tableName)).Scan(&pks)
 
 	var columns []Column
+	var colPkName string
 	f.msSql.Query(QueryColums(tableName)).Scan(&columns)
 	lo.ForEach(columns, func(t Column, i int) {
+		colPkName = ternary(isPk(pks, t.ColumnName), t.ColumnName, colPkName)
 		schema := Schema{
 			Name:        toCamelCase(t.ColumnName),
 			LenName:     len(toCamelCase(t.ColumnName)),
@@ -120,7 +126,16 @@ func (f *Factory) toSchema(tableName string) {
 	var foreignKeys []ForeignKey
 	f.msSql.Query(QueryForeignKey(tableName)).Scan(&foreignKeys)
 	lo.ForEach(foreignKeys, func(fk ForeignKey, i int) {
-		dataType := fmt.Sprintf("[]%v", toCamelCase(fk.TableName))
+		index, _ := lo.Find(f.dbIndex, func(t DbIndex) bool {
+			return t.TableName == fk.TableName && t.ColumnName == colPkName
+		})
+
+		fmt.Println(index)
+
+		// check IsUniqueConstraint 0 is false and 1 is true
+		dataType := fmt.Sprintf("%v%v", ternary(!index.IsUniqueConstraint, "[]", ""), toCamelCase(fk.TableName))
+		// dataType := fmt.Sprintf("%v", toCamelCase(fk.TableName))
+
 		schema := Schema{
 			Name:        toCamelCase(fk.TableName),
 			LenName:     len(toCamelCase(fk.TableName)),
