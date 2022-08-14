@@ -1,3 +1,3 @@
 package utils
 
-const packageName = "schemax"
+const packageName = "schema"

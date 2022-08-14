@@ -30,7 +30,7 @@ func (f Factory) GenGormFile() {
 	f.msSql.Query(QueryTables()).Scan(&tables)
 	lo.ForEach(tables, func(t string, i int) {
 		gormText := f.toGorm(t)
-		createFile(fmt.Sprintf("./schemax/%s.go", strings.ToLower(t)), gormText)
+		createFile(fmt.Sprintf("./project/schema/%s.go", strings.ToLower(t)), gormText)
 	})
 }
 
